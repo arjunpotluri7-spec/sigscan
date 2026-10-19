@@ -1,0 +1,1 @@
+rule minimal { condition: true }

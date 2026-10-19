@@ -1,0 +1,55 @@
+---
+# Checks run in CI on src/lib with compile_commands.json from the dev build.
+Checks: >
+  -*,
+  bugprone-*,
+  cert-*,
+  cppcoreguidelines-*,
+  performance-*,
+  readability-braces-around-statements,
+  readability-const-return-type,
+  readability-container-size-empty,
+  readability-delete-null-pointer,
+  readability-duplicate-include,
+  readability-else-after-return,
+  readability-implicit-bool-conversion,
+  readability-inconsistent-declaration-parameter-name,
+  readability-make-member-function-const,
+  readability-misleading-indentation,
+  readability-non-const-parameter,
+  readability-redundant-control-flow,
+  readability-redundant-string-cstr,
+  readability-simplify-boolean-expr,
+  readability-string-compare,
+  -bugprone-easily-swappable-parameters,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -cppcoreguidelines-pro-bounds-constant-array-index,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -cppcoreguidelines-pro-bounds-avoid-unchecked-container-access,
+  -cppcoreguidelines-avoid-do-while,
+  -cppcoreguidelines-non-private-member-variables-in-classes,
+  -cppcoreguidelines-pro-type-reinterpret-cast,
+  -cppcoreguidelines-avoid-const-or-ref-data-members,
+  -cert-err58-cpp,
+  -performance-enum-size
+
+# Why the disabled checks are off:
+#   bugprone-easily-swappable-parameters: fires on most (offset, length) style signatures.
+#   cppcoreguidelines-avoid-magic-numbers: byte values, table sizes and hex digits are clearer
+#     inline than as named constants.
+#   cppcoreguidelines-pro-bounds-constant-array-index / pointer-arithmetic /
+#     avoid-unchecked-container-access: indexes into
+#     std::array/std::vector are bounded by explicit checks or loop bounds; .at() in the hot
+#     matching loop costs throughput, and std::span indexing is used instead of raw pointers.
+#   cppcoreguidelines-avoid-do-while: not used, and harmless where it would be.
+#   cppcoreguidelines-non-private-member-variables-in-classes: plain aggregates such as Token
+#     and Pattern are intentionally public data.
+#   cppcoreguidelines-pro-type-reinterpret-cast: only used to view bytes as chars at I/O edges.
+#   cppcoreguidelines-avoid-const-or-ref-data-members: reference members are used for short-lived
+#     helpers (writer, reader) that never outlive their owner.
+#   cert-err58-cpp: static tables are constexpr or built by noexcept lambdas.
+#   performance-enum-size: enums are never stored in bulk, so a smaller base type buys nothing.
+WarningsAsErrors: '*'
+HeaderFilterRegex: '.*/include/sigscan/.*'
+FormatStyle: file
+...

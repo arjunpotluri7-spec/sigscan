@@ -1,0 +1,2 @@
+SIGSCAN-MARKER-ONE appears once here, next to SIGSCAN-MARKER-TWO.
+The rule wants marker two followed by a newline, so it stays quiet.

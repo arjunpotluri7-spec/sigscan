@@ -1,0 +1,117 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    name: Build and test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned tools
+        run: pip install -r tools/requirements.txt
+      - name: Install Ninja (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y ninja-build
+      - name: Install Ninja (macOS)
+        if: runner.os == 'macOS'
+        run: command -v ninja || brew install ninja
+      - name: Configure
+        run: cmake --preset dev
+        env:
+          CXX: clang++
+      - name: Build
+        run: cmake --build --preset dev
+      - name: Test
+        run: ctest --preset dev
+      - name: CLI smoke run against samples (findings expected, exit code 1)
+        run: |
+          set +e
+          ./build/dev/sigscan scan -r samples/rules/demo.sig samples/files
+          code=$?
+          set -e
+          test "$code" -eq 1
+          ./build/dev/sigscan scan -r samples/rules/demo.sig --format sarif samples/files > /dev/null || test $? -eq 1
+          ./build/dev/sigscan check samples/rules/demo.sig
+
+  sanitizers:
+    name: ASan + UBSan tests and fuzz smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r tools/requirements.txt
+      - run: sudo apt-get update && sudo apt-get install -y ninja-build
+      - name: Configure
+        run: cmake --preset asan
+        env:
+          CXX: clang++
+      - name: Build
+        run: cmake --build --preset asan
+      - name: Test
+        run: ctest --preset asan
+      - name: Fuzz smoke (20000 mutations per target)
+        env:
+          ASAN_OPTIONS: abort_on_error=1
+          UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+        run: |
+          ./build/asan/fuzz/fuzz_smoke_rule_parser fuzz/corpus/rule_parser 20000
+          ./build/asan/fuzz/fuzz_smoke_matcher fuzz/corpus/matcher 20000
+
+  libfuzzer:
+    name: libFuzzer (60 s per target)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r tools/requirements.txt
+      - run: sudo apt-get update && sudo apt-get install -y ninja-build
+      - name: Configure
+        run: cmake --preset fuzz
+      - name: Build fuzz targets
+        run: cmake --build --preset fuzz --target fuzz_rule_parser fuzz_matcher
+      - name: Run fuzz_rule_parser
+        run: |
+          mkdir -p build/corpus/rule_parser
+          ./build/fuzz/fuzz/fuzz_rule_parser -max_total_time=60 -max_len=4096 \
+            -dict=fuzz/rules.dict build/corpus/rule_parser fuzz/corpus/rule_parser
+      - name: Run fuzz_matcher
+        run: |
+          mkdir -p build/corpus/matcher
+          ./build/fuzz/fuzz/fuzz_matcher -max_total_time=60 -max_len=4096 \
+            build/corpus/matcher fuzz/corpus/matcher
+
+  lint:
+    name: clang-format and clang-tidy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r tools/requirements.txt
+      - run: sudo apt-get update && sudo apt-get install -y ninja-build
+      - name: clang-format
+        run: clang-format --dry-run --Werror $(git ls-files '*.cpp' '*.hpp')
+      - name: Configure (for compile_commands.json)
+        run: cmake --preset dev
+        env:
+          CXX: clang++
+      - name: clang-tidy on library sources
+        run: clang-tidy -p build/dev --quiet src/lib/*.cpp

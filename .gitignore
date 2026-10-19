@@ -1,0 +1,22 @@
+# Build output and local tools
+build/
+out/
+.tools/
+.gradle/
+*.class
+
+# Editors and OS files
+.idea/
+.vscode/
+.DS_Store
+
+# Generated reports
+*.sarif
+report*.json
+reports/
+
+# Fuzzer artifacts
+crash-*
+leak-*
+timeout-*
+oom-*

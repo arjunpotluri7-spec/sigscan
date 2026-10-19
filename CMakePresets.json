@@ -1,0 +1,75 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": { "major": 3, "minor": 25, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    },
+    {
+      "name": "dev",
+      "displayName": "Debug build with warnings as errors",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "SIGSCAN_WERROR": "ON"
+      }
+    },
+    {
+      "name": "asan",
+      "displayName": "Debug build with AddressSanitizer + UndefinedBehaviorSanitizer",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "SIGSCAN_WERROR": "ON",
+        "SIGSCAN_SANITIZE": "address,undefined"
+      }
+    },
+    {
+      "name": "release",
+      "displayName": "Optimized release build",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "SIGSCAN_WERROR": "ON"
+      }
+    },
+    {
+      "name": "fuzz",
+      "displayName": "libFuzzer harnesses (clang on Linux)",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "SIGSCAN_BUILD_TESTS": "OFF",
+        "SIGSCAN_ENABLE_FUZZERS": "ON",
+        "SIGSCAN_BUILD_FUZZ_SMOKE": "OFF",
+        "SIGSCAN_SANITIZE": "address,undefined"
+      }
+    }
+  ],
+  "buildPresets": [
+    { "name": "dev", "configurePreset": "dev" },
+    { "name": "asan", "configurePreset": "asan" },
+    { "name": "release", "configurePreset": "release" },
+    { "name": "fuzz", "configurePreset": "fuzz" }
+  ],
+  "testPresets": [
+    { "name": "dev", "configurePreset": "dev", "output": { "outputOnFailure": true } },
+    {
+      "name": "asan",
+      "configurePreset": "asan",
+      "output": { "outputOnFailure": true },
+      "environment": {
+        "ASAN_OPTIONS": "abort_on_error=1",
+        "UBSAN_OPTIONS": "print_stacktrace=1:halt_on_error=1"
+      }
+    },
+    { "name": "release", "configurePreset": "release", "output": { "outputOnFailure": true } }
+  ]
+}

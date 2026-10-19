@@ -1,0 +1,9 @@
+---
+BasedOnStyle: Google
+ColumnLimit: 100
+IndentWidth: 2
+DerivePointerAlignment: false
+PointerAlignment: Left
+IncludeBlocks: Preserve
+AllowShortFunctionsOnASingleLine: Inline
+...

@@ -1,0 +1,2 @@
+YOUR FILES ARE SAFE - THIS IS A SIGSCAN TEST
+This copy is marked SIGSCAN-ALLOWLISTED by the training team.
