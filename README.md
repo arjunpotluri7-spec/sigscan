@@ -1,9 +1,33 @@
 # Sigscan
 
-A fast, explainable signature scanner for files: write small YARA-style rules describing known-bad
-content, and Sigscan tells you which files match, **where**, and **why**. It only ever reads files.
+**A fast file-scanning tool in C++ that finds known-bad patterns (like a mini YARA): you write simple rules, and it tells you which files match, where in the file, and why.**
+It shows algorithm and systems skills: all rules compile into one Aho-Corasick automaton that searches every file in a single pass. In the benchmark below that pass is about **230× faster** than checking patterns one by one, with identical results.
 
-![CI](../../actions/workflows/ci.yml/badge.svg)
+[![CI](https://github.com/arjunpotluri7-spec/sigscan/actions/workflows/ci.yml/badge.svg)](https://github.com/arjunpotluri7-spec/sigscan/actions/workflows/ci.yml)
+
+![Walkthrough: compiling rules, scanning 13 sample files with explanations, showing match offsets, and the Aho-Corasick vs naive benchmark](docs/media/walkthrough.gif)
+
+*Real terminal output from this repo on an Apple M2 (release build). The scanned files are harmless synthetic samples; no real malware is included.*
+
+**Tech stack:** C++20 · CMake + Ninja · GoogleTest · AddressSanitizer/UBSan · libFuzzer · clang-format/clang-tidy · GitHub Actions (Linux + macOS)
+
+**Highlights**
+- Hand-written lexer, parser and Aho-Corasick matching engine (about 5,000 lines, no third-party matching library)
+- Every match explains itself, e.g. *"matched because $a found at 0x49 and 1 of ($b, $c) found"*
+- 99 tests, sanitizer builds, and fuzzing that checks the fast engine against a simple reference engine
+
+**Run it locally:**
+
+```bash
+cmake --preset release && cmake --build --preset release
+./build/release/sigscan scan -r samples/rules/demo.sig samples/files
+```
+
+Full setup is in [Build & install](#build--install).
+
+| Scan with explanations | Benchmark (Apple M2) |
+|---|---|
+| ![Scan output](docs/media/scan.png) | ![Benchmark output](docs/media/bench.png) |
 
 ## Why this exists
 
